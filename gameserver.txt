@@ -1,0 +1,56 @@
+function start(placeid, port, baseurl)
+
+game:GetService("ScriptContext").ScriptsDisabled = true
+
+game:GetService("ContentProvider"):SetBaseUrl(baseurl)
+
+local HttpService = game:GetService("HttpService")
+HttpService.HttpEnabled = true
+
+ImageFormat = "PNG"
+
+while true do
+	print("Checking For Renders")
+	local Queue = HttpService:GetAsync("http://yourdomain/img/getList.php")
+	if Queue ~= "no-render" then
+		local Json = HttpService:JSONDecode(Queue)
+		print(string.format("Doing Render For %d type %s", Json.render_id, Json.type))
+		if Json.type == "character" then
+			if not game.Players.LocalPlayer then
+				game:GetService("Players"):CreateLocalPlayer(0)
+			end
+
+                        game.Players.LocalPlayer.CharacterAppearance = "http://yourdomain/user/getCharacter.php?uid=" .. Json.render_id .. "&mode=ch&sid=1&key=D869593BF742A42F79915993EF1DB"
+			
+			game.Players.LocalPlayer:LoadCharacter(false)
+
+			local gear = game.Players.LocalPlayer.Backpack:GetChildren()[1]
+			if gear then
+				gear.Parent = game.Players.LocalPlayer.Character
+				game.Players.LocalPlayer.Character.Torso['Right Shoulder'].CurrentAngle = math.rad(90)
+			end
+
+			local Thumbnail = game:GetService("ThumbnailGenerator"):Click("PNG", 420, 420, true)
+
+			print("uploading Thumbnail")
+
+			local Post = game:HttpPost("http://yourdomain/directory/somephpfile.php?id=" .. Json.render_id .. "&type=" .. Json.type, tostring(Thumbnail), true, "text/plain", true)
+			
+			if Post then
+				print(string.format("Done Redering %s %d Now Deleting The RenderQueue", Json.type, Json.render_id))
+			end
+
+			local FinishRender = HttpService:GetAsync("http://yourdomain/img/doFinish.php?renderid=" .. Json.render_id .. "&type=" .. Json.type .. "&apiKey=DebianIsAHotFuckingChickAndRaymonfNeedsToDie342908590498590485&version=1")
+
+			if FinishRender then
+				print("Done")
+			end
+		end
+	end	
+	if Queue == "no-render" then
+		print("No RenderQueue Checking")
+	end
+	wait(5)
+end
+
+end
